@@ -4,7 +4,7 @@ This project aim to create multi-label classification annotation tool to boost a
 
 2. ###### UI design
 
-![image](https://https://github.com/xianghong87/Multi-label-classification-annotation-tool/blob/main/images/UI.png)
+![image](https://github.com/xianghong87/Multi-label-classification-annotation-tool/blob/main/images/UI.png)
 
 3. ###### Usage
 
