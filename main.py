@@ -40,7 +40,7 @@ class QImageViewer(QMainWindow):
         self.setWindowTitle("Multiple Label Annotation Tool")
         self.resize(1200, 768)
         self.classes_txt_path = resource_path(os.path.join("icons", "classes.txt"))
-        self.classes_txt = open(self.classes_txt_path, 'r')
+        self.classes_txt = open(self.classes_txt_path, 'r', encoding='utf-8')
         self.classes = self.classes_txt.readlines()
 
         # 窗口居中显示
@@ -93,8 +93,13 @@ class QImageViewer(QMainWindow):
 
         self.btn_change_save_folder = QPushButton("  Change Save folder")
         self.btn_change_save_folder.setEnabled(True)
-        self.btn_change_save_folder.setIcon(QIcon(resource_path(os.path.join("icons", "folder-open.png"))))
+        self.btn_change_save_folder.setIcon(QIcon(resource_path(os.path.join("icons", "floppy-disk.png"))))
         self.btn_change_save_folder.setIconSize(QtCore.QSize(50, 50))
+
+        self.btn_load_class = QPushButton("  Load Classes")
+        self.btn_load_class.setEnabled(True)
+        self.btn_load_class.setIcon(QIcon(resource_path(os.path.join("icons", "Load-File.png"))))
+        self.btn_load_class.setIconSize(QtCore.QSize(50, 50))
 
         self.list_widget = QListWidget(self)
 
@@ -113,6 +118,7 @@ class QImageViewer(QMainWindow):
         left_layout.addWidget(self.btn_next)
         left_layout.addWidget(self.btn_save)
         left_layout.addWidget(self.btn_change_save_folder)
+        left_layout.addWidget(self.btn_load_class)
         left_layout.addWidget(self.list_widget)
 
         left_layout.setStretch(0, 10)
@@ -136,7 +142,7 @@ class QImageViewer(QMainWindow):
         self.img_viewer.setScaledContents(True)
         self.img_viewer.setAlignment(Qt.AlignCenter)
 
-        groupBox = QGroupBox('Pedestrian Attributes', self)
+        self.groupBox = QGroupBox('Pedestrian Attributes', self)
 
         check_items, combo_items = self.parse_class()
         # print(check_items, combo_items)
@@ -145,13 +151,11 @@ class QImageViewer(QMainWindow):
         self.comboboxes_classes = {}
         self.comboboxes_labels = {}
 
-        groupLayout = QVBoxLayout()
-        i = 0
+        self.groupLayout = QVBoxLayout()
         for check_item in check_items:
             self.checkboxes_classes[check_item] = QCheckBox("   " + check_item)
-            groupLayout.addWidget(self.checkboxes_classes[check_item], 2)
-            # groupLayout.setStretch(i, 2)
-            # i = i + 1
+            self.groupLayout.addWidget(self.checkboxes_classes[check_item], 2)
+
 
         for combo_item in combo_items:
             self.comboboxes_labels[combo_item] = QLabel(combo_item)
@@ -159,19 +163,15 @@ class QImageViewer(QMainWindow):
             combo_classes = combo_items[combo_item].split(',')
             for cls in combo_classes:
                 self.comboboxes_classes[combo_item].addItem(cls)
-            groupLayout.addWidget(self.comboboxes_labels[combo_item], 2)
-            # groupLayout.setStretch(i, 2)
-            # i = i + 1
-            groupLayout.addWidget(self.comboboxes_classes[combo_item], 2)
-            # groupLayout.setStretch(i, 2)
-            # i = i + 1
+            self.groupLayout.addWidget(self.comboboxes_labels[combo_item], 2)
+            self.groupLayout.addWidget(self.comboboxes_classes[combo_item], 2)
 
-        groupLayout.setSpacing(5)
+        self.groupLayout.setSpacing(5)
 
-        groupBox.setLayout(groupLayout)
+        self.groupBox.setLayout(self.groupLayout)
 
         right_layout.addWidget(self.img_viewer)
-        right_layout.addWidget(groupBox)
+        right_layout.addWidget(self.groupBox)
         right_layout.setStretch(0, 70)
         right_layout.setStretch(1, 30)
 
@@ -181,13 +181,9 @@ class QImageViewer(QMainWindow):
         vertical_splitter = QSplitter(Qt.Horizontal, frameShape=QFrame.StyledPanel,frameShadow=QFrame.Plain)
 
         vertical_splitter.addWidget(self.left_widget)
-        # main_layout.addWidget(vertical_splitter)
         vertical_splitter.addWidget(self.right_widget)
         vertical_splitter.setSizes([100, 1100])
         main_layout.addWidget(vertical_splitter)
-        # main_layout.setStretch(0, 15)
-
-        # main_layout.setStretch(2, 80)
 
         main_widget = QWidget()
         main_widget.setLayout(main_layout)
@@ -201,6 +197,7 @@ class QImageViewer(QMainWindow):
         self.btn_previous.clicked.connect(self.prevImg)
         self.btn_change_save_folder.clicked.connect(self.changeSaveFolder)
         self.btn_save.clicked.connect(self.saveLabel)
+        self.btn_load_class.clicked.connect(self.loadLabel)
 
     def center(self):
         '''
@@ -211,6 +208,39 @@ class QImageViewer(QMainWindow):
         screen = QDesktopWidget().screenGeometry()
         size = self.geometry()
         self.move((screen.width() - size.width()) / 2, (screen.height() - size.height()) / 2)
+
+    def loadLabel(self):
+        fileName, fileType = QFileDialog.getOpenFileName(self, "打开标注类别文件", "", "All Files(*)")
+        print(fileName)
+        self.classes_txt_path = fileName
+        self.classes_txt = open(self.classes_txt_path, 'r', encoding='utf-8')
+        self.classes = self.classes_txt.readlines()
+        check_items, combo_items = self.parse_class()
+        for i in reversed(range(self.groupLayout.count())):
+            self.groupLayout.itemAt(i).widget().setParent(None)
+
+        self.checkboxes_classes = {}
+        self.comboboxes_classes = {}
+        self.comboboxes_labels = {}
+
+        for check_item in check_items:
+            self.checkboxes_classes[check_item] = QCheckBox("   " + check_item)
+            self.groupLayout.addWidget(self.checkboxes_classes[check_item], 2)
+
+        for combo_item in combo_items:
+            self.comboboxes_labels[combo_item] = QLabel(combo_item)
+            self.comboboxes_classes[combo_item] = QComboBox()
+            combo_classes = combo_items[combo_item].split(',')
+            for cls in combo_classes:
+                self.comboboxes_classes[combo_item].addItem(cls)
+            self.groupLayout.addWidget(self.comboboxes_labels[combo_item], 2)
+            self.groupLayout.addWidget(self.comboboxes_classes[combo_item], 2)
+
+        self.groupLayout.setSpacing(5)
+
+        self.groupBox.setLayout(self.groupLayout)
+
+
 
     def changeSaveFolder(self):
         ''' Select a directory, make list of images in it and display the first image in the list. '''
